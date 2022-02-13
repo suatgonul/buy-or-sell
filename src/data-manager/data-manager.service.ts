@@ -6,6 +6,7 @@ import {Candle} from '../model/candle';
 import {TimescaleDbService} from './db/timescaledb/timescale-db.service';
 import {START_UNIX_TIMESTAMP} from '../constant/constants';
 import {RuntimeException} from '@nestjs/core/errors/exceptions/runtime.exception';
+import {addDuration} from '../util/date-time-utils';
 
 @Injectable()
 export class DataManagerService {
@@ -79,31 +80,6 @@ export class DataManagerService {
    * @private
    */
   private getTimestampForNextBatch(currentTimestamp: DateTime, duration: Duration, batchSize = 1000): DateTime {
-    let nextTimeStamp: DateTime;
-    if (duration.minutes) {
-      nextTimeStamp = currentTimestamp.plus({
-        minutes: duration.minutes * batchSize
-      });
-    } else if (duration.hours) {
-      nextTimeStamp = currentTimestamp.plus({
-        hours: duration.hours * batchSize
-      });
-    } else if (duration.days) {
-      nextTimeStamp = currentTimestamp.plus({
-        days: duration.days * batchSize
-      });
-    } else if (duration.weeks) {
-      nextTimeStamp = currentTimestamp.plus({
-        weeks: duration.weeks * batchSize
-      });
-    } else if (duration.months) {
-      nextTimeStamp = currentTimestamp.plus({
-        months: duration.months * batchSize
-      });
-    } else {
-      throw new RuntimeException('Invalid duration');
-    }
-    return nextTimeStamp;
-
+    return addDuration(currentTimestamp, duration, batchSize);
   }
 }

@@ -1,4 +1,4 @@
-import {DateTime} from 'luxon';
+import {DateTime, Duration} from 'luxon';
 
 /**
  * Candle data for a symbol
@@ -9,6 +9,7 @@ export class Candle {
               public high: number,
               public low: number,
               public close: number,
-              public volume: number) {
+              public volume: number,
+              public duration: Duration = null) {
   }
 }

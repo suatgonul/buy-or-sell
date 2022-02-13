@@ -4,8 +4,9 @@ import {timescaleDbFactory} from './db/timescaledb/timescale-db.factory';
 import {mongoDbFactory} from './db/mongo/mongo-db.factory';
 import {BitstampDataIntegrator} from './data-integration/bitstamp-data-integrator.service';
 import {DataIntegrationController} from './controller/data-integration.controller';
-import {DataManagerService} from './data-manager.service';
 import {TimescaleDbService} from './db/timescaledb/timescale-db.service';
+import {DataCollectorService} from './data-collector.service';
+import {DataManagerService} from './data-manager.service';
 
 @Module({
   imports: [
@@ -24,13 +25,17 @@ import {TimescaleDbService} from './db/timescaledb/timescale-db.service';
     },
     TimescaleDbService,
     BitstampDataIntegrator,
+    DataCollectorService,
     DataManagerService
   ],
   controllers: [
     DataIntegrationController
   ],
   exports: [
-    BitstampDataIntegrator
+    BitstampDataIntegrator,
+    TimescaleDbService,
+    DataCollectorService,
+    DataManagerService
   ]
 })
 export class DataManagerModule {

@@ -8,7 +8,8 @@ import {formatString} from '../../../util/string-utils';
 @Injectable()
 export class TimescaleDbService {
   SQL_CREATE_EXTENSION: string = 'CREATE EXTENSION IF NOT EXISTS timescaledb;';
-  SQL_GET_LATEST_TIMESTAMP = 'SELECT (EXTRACT(EPOCH FROM timestamp) * 1000)::BIGINT FROM {0} ORDER BY timestamp DESC LIMIT 1'
+  SQL_GET_LATEST_TIMESTAMP = 'SELECT (EXTRACT(EPOCH FROM timestamp) * 1000)::BIGINT FROM {0} ORDER BY timestamp DESC LIMIT 1';
+  SQL_GET_CANDLES_BETWEEN = 'SELECT * FROM {0} WHERE timestamp >= \'{1}\'::timestamp AND timestamp <= \'{2}\'::timestamp ';
 
   constructor(@Inject('TIMESCALE_DB_POOL') private pool: Pool) {
     this.initializeDb();
@@ -46,7 +47,33 @@ export class TimescaleDbService {
       }).catch(error => {
         console.error(error);
         return null;
-      })
+      });
+  }
+
+  public getCandlesByDateTime(symbol: Symbol, duration: Duration, startTime: DateTime, endTime: DateTime): Promise<Candle[]> {
+    const startTimeStr: string = startTime.toISOTime();
+    const endTimeStr: string = endTime.toISOTime();
+    return this.getCandles(symbol, duration, startTimeStr, endTimeStr);
+  }
+
+  public getCandles(symbol: Symbol, duration: Duration, startTime: string, endTime: string): Promise<Candle[]> {
+    const query: string = formatString(this.SQL_GET_CANDLES_BETWEEN, this.getTableName(symbol, duration), startTime, endTime);
+    return this.pool.query(query).then(response => {
+      return response.rows.map(row => {
+        return new Candle(
+          DateTime.fromISO(row.timestamp),
+          Number.parseFloat(row.open),
+          Number.parseFloat(row.high),
+          Number.parseFloat(row.low),
+          Number.parseFloat(row.close),
+          Number.parseFloat(row.volume),
+          duration
+        )
+      });
+    }).catch(error => {
+      console.error(error)
+      return [];
+    });
   }
 
   /**
