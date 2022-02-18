@@ -44,7 +44,7 @@ export class DataCollectorService {
 
     } else if (value instanceof OperatorValue) {
       const func: Function = FunctionFactory.convertValueToFunction(value);
-      const lengthForCurrentFunc: number = func.getWindowLength() - 1; //-1 as the range is inclusive
+      const lengthForCurrentFunc: number = func.getWindowLength();
       const windowLengthsForBranches: number[] = value.parameters.map(parameterValue => {
         return this.getWindowLengthForValue(parameterValue, lengthForCurrentFunc + windowLength);
       })
