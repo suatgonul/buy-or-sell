@@ -13,6 +13,6 @@ export class ExpressionGroup extends Expression {
 }
 
 export enum AssociationOperator {
-  AND,
-  OR
+  AND = 'AND',
+  OR = 'OR'
 }

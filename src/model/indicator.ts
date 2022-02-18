@@ -4,6 +4,8 @@ import {Expression} from './expression/expression';
 import {Value} from './expression/value';
 import {ValueFactory} from './expression/value-factory';
 import {ExpressionFactory} from './expression/expression-factory';
+import {Candle} from './candle';
+import {ValueEvaluator} from '../strategy-runner/value-evaluator';
 
 export class Indicator {
   metrics: Value[];
@@ -18,12 +20,18 @@ export class Indicator {
     this.category = data.category;
   }
 
-  calculateMetrics(timestamp: DateTime): Promise<Signal> {
-    return null;
+  calculateMetrics(timestamp: DateTime, candles: Candle[]): Map<string, number> {
+    const valueEvaluator: ValueEvaluator = new ValueEvaluator();
+    const candleIndex: number = candles.findIndex(candle => candle.timestamp.equals(timestamp));
+    const metricValues: Map<string, number> = new Map<string, number>();
+    this.metrics.forEach(metric => {
+      metricValues.set(metric.id, valueEvaluator.evaluateValue(metric, candleIndex, candles, metricValues));
+    });
+    return metricValues;
   }
 
-  async generateSignal(timestamp: DateTime): Promise<Signal> {
-    await this.calculateMetrics(timestamp);
+  async generateSignal(timestamp: DateTime, candles: Candle[]): Promise<Signal> {
+    await this.calculateMetrics(timestamp, candles);
 
     /*const buy: boolean = await this.runBuyRules();
     if (!buy) {

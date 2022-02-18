@@ -9,7 +9,7 @@ import {formatString} from '../../../util/string-utils';
 export class TimescaleDbService {
   SQL_CREATE_EXTENSION: string = 'CREATE EXTENSION IF NOT EXISTS timescaledb;';
   SQL_GET_LATEST_TIMESTAMP = 'SELECT (EXTRACT(EPOCH FROM timestamp) * 1000)::BIGINT FROM {0} ORDER BY timestamp DESC LIMIT 1';
-  SQL_GET_CANDLES_BETWEEN = 'SELECT * FROM {0} WHERE timestamp >= \'{1}\'::timestamp AND timestamp <= \'{2}\'::timestamp ';
+  SQL_GET_CANDLES_BETWEEN = 'SELECT *,(EXTRACT(EPOCH FROM timestamp) * 1000)::BIGINT as timeStampInMillis FROM {0} WHERE timestamp >= \'{1}\'::timestamp AND timestamp <= \'{2}\'::timestamp ';
 
   constructor(@Inject('TIMESCALE_DB_POOL') private pool: Pool) {
     this.initializeDb();
@@ -61,7 +61,7 @@ export class TimescaleDbService {
     return this.pool.query(query).then(response => {
       return response.rows.map(row => {
         return new Candle(
-          DateTime.fromISO(row.timestamp),
+          DateTime.fromMillis(Number.parseFloat(row.timestampinmillis)),
           Number.parseFloat(row.open),
           Number.parseFloat(row.high),
           Number.parseFloat(row.low),

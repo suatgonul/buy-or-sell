@@ -20,9 +20,8 @@ export class DataCollectorService {
   async collectData(strategy: Strategy, symbol: Symbol, duration: Duration, startTime: string, endTime: string): Promise<Candle[]> {
     const windowLength: number = this.getWindowLengthForStrategy(strategy);
     const startTimeForStrategy: DateTime = subtractDuration(DateTime.fromISO(startTime), duration, windowLength);
-    const candles: Candle[] = await this.timescaleDb.getCandles(symbol, duration, startTimeForStrategy.toISO(), endTime);
-    console.log(candles);
-    return Promise.resolve([]);
+    const candles: Candle[] = await this.timescaleDb.getCandles(symbol, duration, startTimeForStrategy.toUTC().toISO(), endTime);
+    return candles;
   }
 
   private getWindowLengthForStrategy(strategy: Strategy): number {

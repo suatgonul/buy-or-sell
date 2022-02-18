@@ -6,7 +6,7 @@ export class OperatorValue extends Value {
   parameters: Value[];
 
   constructor(data: any) {
-    super();
+    super(data);
     this.operator = data.operator;
     if (data.parameters) {
       this.parameters = data.parameters.map(parameter => {

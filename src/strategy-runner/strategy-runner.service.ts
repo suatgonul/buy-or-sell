@@ -17,11 +17,14 @@ export class StrategyRunnerService {
   async runStrategy(strategy: Strategy, symbol: Symbol, duration: Duration, startTime: string, endTime: string): Promise<TestReport> {
     const candles: Candle[] = await this.dataCollectorService.collectData(strategy, symbol, duration, startTime, endTime);
     const report: TestReport = new TestReport();
+    const _startTime: DateTime = DateTime.fromISO(startTime);
+    const candleIndex: number = candles.findIndex(candle => candle.timestamp.equals(_startTime));
 
-    /*candles.map(candle => {
+    for (let i = candleIndex; i < candles.length; i++) {
+      const candle: Candle = candles[i];
       // first obtain indicator signals
       const signalsToArrive: Promise<Signal>[] = strategy.indicators.map(indicator => {
-        return indicator.generateSignal(candle.timestamp);
+        return indicator.generateSignal(candle.timestamp, candles);
       });
 
       let action: Signal = Signal.NEUTRAL;
@@ -35,7 +38,7 @@ export class StrategyRunnerService {
 
       // apply strategy rules
       this.applyStrategyRules(action, candle, report);
-    });*/
+    }
     return Promise.resolve(null);
   }
 

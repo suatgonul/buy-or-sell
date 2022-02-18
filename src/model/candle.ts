@@ -12,4 +12,15 @@ export class Candle {
               public volume: number,
               public duration: Duration = null) {
   }
+
+  public toReadableJson(): any {
+    const {timestamp, duration, ...rest} = this;
+    return {
+      ...rest,
+      timestamp: timestamp.toISO(),
+      duration: duration.toISO()
+    }
+  }
+
+  public
 }
