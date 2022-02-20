@@ -1,10 +1,22 @@
 import {Function} from '../model/expression/function';
-import {Candle} from '../model/candle';
+import {Value} from '../model/expression/value';
+import {SingleValue} from '../model/expression/single-value';
+import {NumericFunction} from '../model/expression/numeric-function';
 
 export abstract class BaseFunction implements Function {
-  getWindowLength(): number {
-    return 0;
+
+  protected constructor(protected windowLength: number = 0) {
   }
 
-  abstract evaluate(candleIndex: number, candles: Candle[], metrics: Map<string, number>);
+  getValueWindowLength(value: Value): number {
+    if (value instanceof SingleValue) {
+      return 0;
+    } else {
+      return (value as NumericFunction).getWindowLength();
+    }
+  }
+
+  getWindowLength(): number {
+    return this.windowLength;
+  }
 }

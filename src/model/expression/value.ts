@@ -1,7 +1,3 @@
-export abstract class Value {
-  id: string;
+export interface Value {
 
-  protected constructor(data: any) {
-    this.id = data.id;
-  }
 }

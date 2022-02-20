@@ -1,41 +1,27 @@
 import {Signal} from './signal';
 import {DateTime} from 'luxon';
 import {Expression} from './expression/expression';
-import {Value} from './expression/value';
-import {ValueFactory} from './expression/value-factory';
 import {ExpressionFactory} from './expression/expression-factory';
 import {Candle} from './candle';
 import {ValueEvaluator} from '../strategy-runner/value-evaluator';
 
 export class Indicator {
-  metrics: Value[];
   buyRules: Expression[];
   sellRules: Expression[];
   category: IndicatorCategory;
 
   constructor(data: any) {
-    this.metrics = data.metrics.map(metric => ValueFactory.createValue(metric));
     this.buyRules = data.buyRules.map(rule => ExpressionFactory.createExpression(rule));
     this.sellRules = data.sellRules.map(rule => ExpressionFactory.createExpression(rule));
     this.category = data.category;
   }
 
-  calculateMetrics(timestamp: DateTime, candles: Candle[]): Map<string, number> {
-    const valueEvaluator: ValueEvaluator = new ValueEvaluator();
-    const candleIndex: number = candles.findIndex(candle => candle.timestamp.equals(timestamp));
-    const metricValues: Map<string, number> = new Map<string, number>();
-    this.metrics.forEach(metric => {
-      metricValues.set(metric.id, valueEvaluator.evaluateValue(metric, candleIndex, candles, metricValues));
-    });
-    return metricValues;
-  }
-
   async generateSignal(timestamp: DateTime, candles: Candle[]): Promise<Signal> {
-    await this.calculateMetrics(timestamp, candles);
-
-    /*const buy: boolean = await this.runBuyRules();
+    let ruleResults: boolean[] = this.runRules(this.buyRules, timestamp, candles);
+    const buy: boolean = this.shouldBuy(ruleResults);
     if (!buy) {
-      const sell: boolean = await this.runSellRules();
+      ruleResults = await this.runRules(this.sellRules, timestamp, candles);
+      const sell: boolean = this.shouldSell(ruleResults);
       if (sell) {
         return Signal.SELL;
       } else {
@@ -43,8 +29,24 @@ export class Indicator {
       }
     } else {
       return Signal.BUY;
-    }*/
+    }
     return Promise.resolve(Signal.NEUTRAL);
+  }
+
+  private runRules(rules: Expression[], timestamp: DateTime, candles: Candle[]): boolean[] {
+    const valueEvaluator: ValueEvaluator = new ValueEvaluator();
+    const candleIndex: number = candles.findIndex(candle => candle.timestamp.equals(timestamp));
+    return rules.map(rule => valueEvaluator.evaluateExpression(rule, candleIndex, candles));
+  }
+
+  private shouldBuy(ruleResponses: boolean[]): boolean {
+    // for now, buy only if all rules are met
+    return ruleResponses.length > 0 && ruleResponses.every(response => response);
+  }
+
+  private shouldSell(ruleResponses: boolean[]): boolean {
+    // for now, sell only if all rules are met
+    return ruleResponses.length > 0 && ruleResponses.every(response => response);
   }
 }
 

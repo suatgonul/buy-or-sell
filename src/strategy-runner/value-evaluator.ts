@@ -1,28 +1,26 @@
 import {Candle} from '../model/candle';
 import {Value} from '../model/expression/value';
 import {DataRef, SingleValue} from '../model/expression/single-value';
-import {OperatorValue} from '../model/expression/operator-value';
 import {RuntimeException} from '@nestjs/core/errors/exceptions/runtime.exception';
-import {FunctionFactory} from '../function/function-factory';
-import {Function} from '../model/expression/function';
+import {Expression} from '../model/expression/expression';
+import {NumericFunction} from '../model/expression/numeric-function';
+import {AssociationOperator, ExpressionGroup} from '../model/expression/expression-group';
+import {ConditionalFunction} from '../model/expression/conditional-function';
 
 export class ValueEvaluator {
-  evaluateValue(value: Value, candleIndex: number, candles: Candle[], metrics: Map<string, number>): number {
+  evaluateValue(value: Value, candleIndex: number, candles: Candle[]): number {
     if (value instanceof SingleValue) {
-      return this.evaluateSingleValue(value, candleIndex, candles, metrics);
-    } else if (value instanceof OperatorValue) {
-      return this.evaluateOperatorValue(value, candleIndex, candles, metrics);
+      return this.evaluateSingleValue(value, candleIndex, candles);
+    } else {
+      return (value as NumericFunction).evaluate(candleIndex, candles);
     }
-    throw new RuntimeException('Invalid value');
   }
 
-  private evaluateSingleValue(value: SingleValue, candleIndex: number, candles: Candle[], metrics: Map<string, number>): number {
+  private evaluateSingleValue(value: SingleValue, candleIndex: number, candles: Candle[]): number {
     if (value.constantValue) {
       return value.constantValue;
     } else if (value.dataRef) {
       return this.resolveDataRef(value.dataRef, candleIndex, candles);
-    } else if (value.metric) {
-      return metrics.get(value.metric);
     }
     throw new RuntimeException("No valid single value");
   }
@@ -42,8 +40,18 @@ export class ValueEvaluator {
     throw new RuntimeException('Illegal data ref');
   }
 
-  private evaluateOperatorValue(value: OperatorValue, candleIndex: number, candles: Candle[], metrics: Map<string, number>): number {
-    const func: Function = FunctionFactory.convertValueToFunction(value);
-    return func.evaluate(candleIndex, candles, metrics);
+  public evaluateExpression(expression: Expression, candleIndex: number, candles: Candle[]): boolean {
+    if (expression instanceof ExpressionGroup) {
+      const expressionResults: boolean[] = expression.expressions.map(innerExpression => this.evaluateExpression(innerExpression, candleIndex, candles));
+      if (expression.operator === AssociationOperator.AND) {
+        return expressionResults.every(result => result);
+      } else {
+        return expressionResults.some(result => result);
+      }
+
+    } else {
+      return (expression as ConditionalFunction).evaluate(candleIndex, candles);
+    }
   }
+
 }

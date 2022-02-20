@@ -1,5 +1,3 @@
-import {Operator} from './operator';
-
-export interface Function extends Operator {
+export interface Function {
   getWindowLength(): number;
 }

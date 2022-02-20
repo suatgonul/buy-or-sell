@@ -11,7 +11,7 @@ export class StrategyRunnerController {
   }
 
   @Post()
-  async populateOhlcData(@Body() strategy: string,
+  async runStrategy(@Body() strategy: string,
                          @Query('symbol') symbol: string,
                          @Query('duration') duration: string,
                          @Query('startTime') startTime: string,

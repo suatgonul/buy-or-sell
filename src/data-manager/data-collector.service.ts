@@ -5,12 +5,10 @@ import {TimescaleDbService} from './db/timescaledb/timescale-db.service';
 import {Strategy} from '../model/strategy';
 import {Indicator} from '../model/indicator';
 import {Symbol} from '../model/symbol';
-import {Function} from '../model/expression/function';
-import {SingleValue} from '../model/expression/single-value';
-import {OperatorValue} from '../model/expression/operator-value';
-import {Value} from '../model/expression/value';
-import {FunctionFactory} from '../function/function-factory';
 import {subtractDuration} from '../util/date-time-utils';
+import {Expression} from '../model/expression/expression';
+import {ExpressionGroup} from '../model/expression/expression-group';
+import {ConditionalFunction} from '../model/expression/conditional-function';
 
 @Injectable()
 export class DataCollectorService {
@@ -32,23 +30,21 @@ export class DataCollectorService {
   }
 
   private getWindowLengthForIndicator(indicator: Indicator): number {
-    const windowLength: number = indicator.metrics
-    .map(metric => this.getWindowLengthForValue(metric, 0))
+    const windowLength: number = indicator.buyRules.concat(indicator.sellRules)
+    .map(rule => this.getWindowLengthForExpression(rule))
     .reduce((previousValue, currentValue) => Math.max(previousValue, currentValue));
     return windowLength;
   }
 
-  private getWindowLengthForValue(value: Value, windowLength: number): number {
-    if (value instanceof SingleValue) {
-      return windowLength;
-
-    } else if (value instanceof OperatorValue) {
-      const func: Function = FunctionFactory.convertValueToFunction(value);
-      const lengthForCurrentFunc: number = func.getWindowLength();
-      const windowLengthsForBranches: number[] = value.parameters.map(parameterValue => {
-        return this.getWindowLengthForValue(parameterValue, lengthForCurrentFunc + windowLength);
+  private getWindowLengthForExpression(expression: Expression): number {
+    if (expression instanceof ExpressionGroup) {
+      const windowLengthsForBranches: number[] = expression.expressions.map(innerExpression => {
+        return this.getWindowLengthForExpression(innerExpression);
       })
       return windowLengthsForBranches.reduce((previousValue, currentValue) => Math.max(previousValue, currentValue));
+
+    } else {
+      return (expression as ConditionalFunction).getWindowLength();
     }
   }
 }

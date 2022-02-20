@@ -1,13 +1,32 @@
 import {Expression} from './expression';
 import {ExpressionGroup} from './expression-group';
-import {SingleExpression} from './single-expression';
+import {Function} from './function';
+import {Value} from './value';
+import {ValueFactory} from './value-factory';
+import {BasicComparison} from '../../function/conditional/basic-comparison';
 
 export abstract class ExpressionFactory {
   public static createExpression(data: any): Expression {
-    if (data.klass === 'SingleExpression') {
-      return new SingleExpression(data);
-    } else if (data.klass === 'ExpressionGroup') {
+    if (data.klass === 'ExpressionGroup') {
       return new ExpressionGroup(data);
+    } else {
+      return ExpressionFactory.createConditionalFunction(data);
     }
   }
+
+  private static createConditionalFunction(data: any): Function {
+    const parameters: any = data.parameters;
+    switch (data.name) {
+      case ConditionalFunctionName.LESS_THAN: {
+        const firstValue: Value = ValueFactory.createValue(parameters.firstValue);
+        const secondValue: Value = ValueFactory.createValue(parameters.secondValue);
+        return new BasicComparison(data.name, firstValue, secondValue);
+      }
+    }
+  }
+}
+
+export enum ConditionalFunctionName {
+  LESS_THAN = '<',
+  CROSS = 'CROSS'
 }
