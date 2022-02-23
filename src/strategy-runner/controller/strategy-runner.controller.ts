@@ -1,6 +1,6 @@
-import {Body, Controller, Get, Post, Query} from '@nestjs/common';
+import {Body, Controller, Post, Query} from '@nestjs/common';
 import {Symbol} from '../../model/symbol';
-import {DateTime, Duration} from 'luxon';
+import {Duration} from 'luxon';
 import {StrategyRunnerService} from '../strategy-runner.service';
 import {TestReport} from '../../model/report/test-report';
 import {Strategy} from '../../model/strategy';

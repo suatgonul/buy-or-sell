@@ -1,5 +1,5 @@
 export enum Signal {
-  BUY,
-  SELL,
-  NEUTRAL
+  BUY = 'BUY',
+  SELL = 'SELL',
+  NEUTRAL = 'NEUTRAL'
 }

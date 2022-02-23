@@ -3,6 +3,7 @@ import {Candle} from '../../model/candle';
 import {ValueEvaluator} from '../../strategy-runner/value-evaluator';
 import {NumericFunction} from '../../model/expression/numeric-function';
 import {BaseFunction} from '../base-function';
+import {SMA} from 'technicalindicators';
 
 export class MovingAverage extends BaseFunction implements NumericFunction {
 
@@ -26,7 +27,9 @@ export class MovingAverage extends BaseFunction implements NumericFunction {
       evaluatedValues.push(valueEvaluator.evaluateValue(this.value, j, candles));
     }
 
-    const windowSum: number = evaluatedValues.reduce(((previousValue, currentValue) => previousValue + currentValue), 0);
-    return windowSum / this.windowLength;
+    const average: number[] = SMA.calculate({period: this.windowLength, values: evaluatedValues});
+    return average[0];
+    // const windowSum: number = evaluatedValues.reduce(((previousValue, currentValue) => previousValue + currentValue), 0);
+    // return windowSum / this.windowLength;
   }
 }

@@ -2,7 +2,7 @@
  * A currency pair
  */
 export class Symbol {
-  constructor(private mainInstrument: string, private valueInstrument: string) {
+  constructor(public mainInstrument: string, public fiat: string) {
   }
 
   static fromSymbolName(name: string): Symbol {
@@ -11,6 +11,6 @@ export class Symbol {
   }
 
   getName(): string {
-    return this.mainInstrument + '_' + this.valueInstrument;
+    return this.mainInstrument + '_' + this.fiat;
   }
 }

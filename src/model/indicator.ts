@@ -16,11 +16,11 @@ export class Indicator {
     this.category = data.category;
   }
 
-  async generateSignal(timestamp: DateTime, candles: Candle[]): Promise<Signal> {
+  generateSignal(timestamp: DateTime, candles: Candle[]): Signal {
     let ruleResults: boolean[] = this.runRules(this.buyRules, timestamp, candles);
     const buy: boolean = this.shouldBuy(ruleResults);
     if (!buy) {
-      ruleResults = await this.runRules(this.sellRules, timestamp, candles);
+      ruleResults = this.runRules(this.sellRules, timestamp, candles);
       const sell: boolean = this.shouldSell(ruleResults);
       if (sell) {
         return Signal.SELL;
@@ -30,7 +30,7 @@ export class Indicator {
     } else {
       return Signal.BUY;
     }
-    return Promise.resolve(Signal.NEUTRAL);
+    return Signal.NEUTRAL;
   }
 
   private runRules(rules: Expression[], timestamp: DateTime, candles: Candle[]): boolean[] {

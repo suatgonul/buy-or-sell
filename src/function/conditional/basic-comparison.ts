@@ -26,7 +26,7 @@ export class BasicComparison extends BaseFunction implements ConditionalFunction
       case '<':
         return firstValue < secondValue;
       case '<=':
-        return firstValue >= secondValue;
+        return firstValue <= secondValue;
     }
   }
 }
