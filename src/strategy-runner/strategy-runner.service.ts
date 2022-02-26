@@ -6,8 +6,9 @@ import {Symbol} from '../model/symbol';
 import {Candle} from '../model/candle';
 import {Signal} from '../model/signal';
 import {TestReport} from '../model/report/test-report';
-import {TradeAction} from '../model/report/trade-action';
+import {Position} from '../model/report/position';
 import {DataCollectorService} from '../data-manager/data-collector.service';
+import {TradeAction} from '../model/report/trade-action';
 
 @Injectable()
 export class StrategyRunnerService {
@@ -16,7 +17,7 @@ export class StrategyRunnerService {
 
   async runStrategy(strategy: Strategy, symbol: Symbol, duration: Duration, startTime: string, endTime: string): Promise<TestReport> {
     const candles: Candle[] = await this.dataCollectorService.collectData(strategy, symbol, duration, startTime, endTime);
-    const report: TestReport = new TestReport();
+    const report: TestReport = new TestReport(new Position(symbol));
     const _startTime: DateTime = DateTime.fromISO(startTime);
     const candleIndex: number = candles.findIndex(candle => candle.timestamp.equals(_startTime));
 
@@ -27,77 +28,65 @@ export class StrategyRunnerService {
         return indicator.generateSignal(candle.timestamp, candles);
       });
 
-      let action: Signal = Signal.NEUTRAL;
-      if (signals.some(signal => signal === Signal.BUY)) {
-        action = Signal.BUY;
-      } else if (signals.some(signal => signal === Signal.SELL)) {
-        action = Signal.SELL;
+      // TODO apply stop-loss, take-profit rules
+
+      const action: Signal = this.harmonizeSignals(signals)
+
+      if (action !== Signal.NEUTRAL) {
+        this.applyAction(action, candle, report.position);
+      }
+    }
+
+    return Promise.resolve(report);
+  }
+
+  private harmonizeSignals(indicatorSignals: Signal[]): Signal {
+    let action: Signal = Signal.NEUTRAL;
+    // for now, if there is at least one buy signal, apply buy action.
+    // TODO: In the future, there should be a better way of combining all indicator signals
+    if (indicatorSignals.some(signal => signal === Signal.BUY)) {
+      action = Signal.BUY;
+    } else if (indicatorSignals.some(signal => signal === Signal.SELL)) {
+      action = Signal.SELL;
+    }
+
+    return action;
+  }
+
+  private applyAction(action: Signal, candle: Candle, position: Position): void {
+    // TODO apply buying strategy rules
+    const appliedAction: TradeAction = this.updatePosition(action, candle, position, 100);
+    if (appliedAction) {
+      position.actions.push(appliedAction);
+    }
+  }
+
+  /**
+   * Uses the all fiat to buy the instrument or sell all instrument
+   * @param action
+   * @param candle
+   * @param position
+   * @param balanceRatio Amount of the available balance in percentage to be used for in trade action
+   * @private
+   */
+  private updatePosition(action: Signal, candle: Candle, position: Position, balanceRatio: number): TradeAction {
+    let appliedAction: TradeAction = null;
+    if (action === Signal.BUY) {
+      if (position.fiatAmount !== 0) {
+        const amountToBuy: number = position.fiatAmount * balanceRatio / 100 / candle.close;
+        position.fiatAmount = 0;
+        position.instrumentAmount = amountToBuy;
+        appliedAction = new TradeAction(action, candle.timestamp, candle.close, position.fiatAmount, position.instrumentAmount);
       }
 
-      // apply strategy rules
-      this.applyStrategyRules(action, symbol, candle, report);
+    } else if (action === Signal.SELL) {
+      if (position.instrumentAmount !== 0) {
+        const soldValue: number = candle.close * position.instrumentAmount * balanceRatio / 100;
+        position.instrumentAmount = 0;
+        position.fiatAmount = soldValue;
+        appliedAction = new TradeAction(action, candle.timestamp, candle.close, position.fiatAmount, position.instrumentAmount);
+      }
     }
-    return Promise.resolve(null);
-  }
-
-  private applyStrategyRules(indicatorAction: Signal, symbol: Symbol, candle: Candle, report: TestReport): void {
-    // TODO apply strategy rules
-    this.recordAction(indicatorAction, symbol, candle, report);
-  }
-
-  private recordAction(selectedAction: Signal, symbol: Symbol, candle: Candle, report: TestReport): void {
-    const currentPosition: Signal = this.getCurrentPosition(report);
-    const actionTime: DateTime = candle.timestamp.plus(candle.duration);
-    if (
-      (selectedAction === Signal.BUY && currentPosition !== Signal.BUY) ||
-      (selectedAction === Signal.SELL && currentPosition !== Signal.SELL)
-    ) {
-
-      const updatedBag: Map<string, number> = this.getUpdatedBag(selectedAction, symbol, candle.close, report);
-      const action: TradeAction = new TradeAction(selectedAction, actionTime, updatedBag);
-      report.actions.push(action);
-    }
-  }
-
-  private getUpdatedBag(selectionAction: Signal, symbol: Symbol, price: number, testReport: TestReport): Map<string, number> {
-    let fiatAmount: number = 100000;
-    const lastAction: TradeAction = this.getLastAction(testReport);
-    let bag: Map<string, number> = new Map<string, number>();
-    if (lastAction) {
-      bag = lastAction.bag;
-      fiatAmount = bag.get(symbol.mainInstrument);
-    } else {
-      bag.set(symbol.mainInstrument, 0);
-      bag.set(symbol.fiat, fiatAmount);
-    }
-
-    if (selectionAction === Signal.BUY) {
-      const amountToBuy: number = fiatAmount / price;
-      bag.set(symbol.mainInstrument, amountToBuy);
-      bag.set(symbol.fiat, 0);
-
-    } else if (selectionAction === Signal.SELL) {
-      const soldValue: number = price * bag.get(symbol.mainInstrument);
-      bag.set(symbol.mainInstrument, 0);
-      bag.set(symbol.fiat, soldValue);
-    }
-    return bag;
-  }
-
-  private getCurrentPosition(testReport: TestReport): Signal {
-    let lastAction: TradeAction = this.getLastAction(testReport);
-    if (lastAction) {
-      return lastAction.signal;
-    } else {
-      return Signal.NEUTRAL;
-    }
-  }
-
-  private getLastAction(testReport: TestReport): TradeAction {
-    let lastAction: TradeAction = null;
-    if (testReport.actions?.length !== 0) {
-      lastAction = testReport.actions[testReport.actions.length - 1];
-    }
-    return lastAction;
+    return appliedAction;
   }
 }

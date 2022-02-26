@@ -1,11 +1,13 @@
 /**
  * Candle data for a symbol
  */
-import {TradeAction} from './trade-action';
+import {Position} from './position';
+import {TestStatistics} from './test-statistics';
 
 export class TestReport {
-  actions: TradeAction[] = [];
+  lastPrice: number;
+  testStatistics: TestStatistics;
 
-  constructor() {
+  constructor(public position: Position) {
   }
 }
