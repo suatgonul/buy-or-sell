@@ -10,6 +10,7 @@ export class TimescaleDbService {
   SQL_CREATE_EXTENSION: string = 'CREATE EXTENSION IF NOT EXISTS timescaledb;';
   SQL_GET_LATEST_TIMESTAMP = 'SELECT (EXTRACT(EPOCH FROM timestamp) * 1000)::BIGINT FROM {0} ORDER BY timestamp DESC LIMIT 1';
   SQL_GET_CANDLES_BETWEEN = 'SELECT *,(EXTRACT(EPOCH FROM timestamp) * 1000)::BIGINT as timeStampInMillis FROM {0} WHERE timestamp >= \'{1}\'::timestamp AND timestamp <= \'{2}\'::timestamp ';
+  SQL_INSERT_CANDLES = 'INSERT INTO {0}(timestamp, open, high, low, close, volume) VALUES {1}';
 
   constructor(@Inject('TIMESCALE_DB_POOL') private pool: Pool) {
     this.initializeDb();
@@ -119,10 +120,9 @@ export class TimescaleDbService {
    */
   private getCandleInsertSql(tableName: string, candles: Candle[]): string {
     const values: string = candles.map(candle =>
-      `('${candle.timestamp.toISO()}',  ${candle.open},${candle.high},${candle.low},${candle.close},${candle.volume})`
+      `('${candle.timestamp.toISO()}', ${candle.open}, ${candle.high}, ${candle.low}, ${candle.close}, ${candle.volume})`
     ).join(',') + ';';
-    let sql: string = `INSERT INTO ${tableName} VALUES ${values}`;
-    return sql;
+    return formatString(this.SQL_INSERT_CANDLES, tableName, values);
   }
 
   /**
