@@ -1,7 +1,13 @@
-Unstaged changes after reset:
-M	src/model/expression/expression-factory.ts
-M	src/model/report/position.ts
-M	src/model/report/test-report.ts
-M	src/model/report/trade-action.ts
-M	src/model/strategy.ts
-M	src/strategy-runner/strategy-runner.service.ts
+import {TradeAction} from './trade-action';
+import {Symbol} from '../symbol';
+
+export class Position {
+  instrumentAmount: number = 0;
+  initialFiatAmount: number = 100000;
+  fiatAmount: number;
+  actions: TradeAction[] = [];
+
+  constructor(public symbol: Symbol) {
+    this.fiatAmount = this.initialFiatAmount;
+  }
+}
